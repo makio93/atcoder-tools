@@ -63,6 +63,12 @@ def default_credential_supplier() -> Tuple[str, str]:
     return username, password
 
 
+def generate_problem_args(problem_id):
+    contest = Contest(problem_id.rsplit('_', 1)[0])
+    alphabet = problem_id.rsplit('_', 1)[1]
+    return contest, alphabet, problem_id
+
+
 class AtCoderClient(metaclass=Singleton):
 
     def __init__(self):
@@ -125,6 +131,13 @@ class AtCoderClient(metaclass=Singleton):
     def download_problem_content(self, problem: Problem) -> ProblemContent:
         resp = self._request(problem.get_url())
 
+        try:
+            return ProblemContent.from_html(resp.text)
+        except (InputFormatDetectionError, SampleDetectionError) as e:
+            raise e
+
+    def download_problem(self, problem_id: str) -> Problem:
+        return Problem(generate_problem_args(problem_id))
         try:
             return ProblemContent.from_html(resp.text)
         except (InputFormatDetectionError, SampleDetectionError) as e:

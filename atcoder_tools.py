@@ -6,6 +6,7 @@ from atcodertools.release_management.version_check import (
     VersionCheckError,
 )
 from atcodertools.tools.envgen import main as envgen_main
+from atcodertools.tools.probgen import main as probgen_main
 from atcodertools.tools.tester import main as tester_main
 from atcodertools.tools.submit import main as submit_main
 from atcodertools.tools.codegen import main as codegen_main
@@ -54,6 +55,9 @@ def main():
 
     if sys.argv[1] == "gen":
         envgen_main(prog, args)
+
+    if sys.argv[1] == "probgen":
+        probgen_main(prog, args)
 
     if sys.argv[1] == "test":
         exit_program(tester_main(prog, args))
