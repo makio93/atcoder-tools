@@ -63,12 +63,6 @@ def default_credential_supplier() -> Tuple[str, str]:
     return username, password
 
 
-def generate_problem_args(problem_id):
-    contest = Contest(problem_id.rsplit('_', 1)[0])
-    alphabet = problem_id.rsplit('_', 1)[1]
-    return contest, alphabet, problem_id
-
-
 class AtCoderClient(metaclass=Singleton):
 
     def __init__(self):
@@ -137,11 +131,20 @@ class AtCoderClient(metaclass=Singleton):
             raise e
 
     def download_problem(self, problem_id: str) -> Problem:
-        return Problem(generate_problem_args(problem_id))
-        try:
-            return ProblemContent.from_html(resp.text)
-        except (InputFormatDetectionError, SampleDetectionError) as e:
-            raise e
+        contest = Contest(problem_id.rsplit('_', 1)[0])
+        
+        resp = self._request(contest.get_problem_list_url())
+        soup = BeautifulSoup(resp.text, "html.parser")
+        if resp.status_code == 404:
+            raise PageNotFoundError
+
+        for tag in soup.find('table').select('tr')[1::]:
+            tag = tag.find("a")
+            alphabet = tag.text
+            if problem_id == tag.get("href").split("/")[-1]:
+                return Problem(contest, alphabet, problem_id)
+
+        raise PageNotFoundError
 
     def download_all_contests(self) -> List[Contest]:
         contest_ids = []

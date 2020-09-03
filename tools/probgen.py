@@ -49,7 +49,8 @@ def _message_on_execution(cwd: str, cmd: str):
 
 def prepare_procedure(atcoder_client: AtCoderClient,
                       problem: Problem,
-                      config: Config):
+                      config: Config,
+                      contest_name: str):
     workspace_root_path = config.code_style_config.workspace_dir
     template_code_path = config.code_style_config.template_file
     lang = config.code_style_config.lang
@@ -57,8 +58,8 @@ def prepare_procedure(atcoder_client: AtCoderClient,
     pid = problem.get_alphabet()
     problem_dir_path = os.path.join(
         workspace_root_path,
-        problem.get_contest().get_id(),
-        pid)
+        contest_name,
+        problem.problem_id)
 
     def emit_error(text):
         logger.error(with_color("Problem {}: {}".format(pid, text), Fore.RED))
@@ -156,23 +157,22 @@ def prepare_procedure(atcoder_client: AtCoderClient,
     output_splitter()
 
 
-def func(argv: Tuple[AtCoderClient, Problem, Config]):
-    atcoder_client, problem, config = argv
-    prepare_procedure(atcoder_client, problem, config)
+def func(argv: Tuple[AtCoderClient, Problem, Config, str]):
+    atcoder_client, problem, config, contest_name = argv
+    prepare_procedure(atcoder_client, problem, config, contest_name)
 
 
 def prepare_contest(atcoder_client: AtCoderClient,
                     problem_id: str,
-                    contest_name: str,
                     config: Config,
+                    contest_name: str,
                     retry_delay_secs: float = 1.5,
                     retry_max_delay_secs: float = 60,
                     retry_max_tries: int = 10):
     attempt_count = 1
     while True:
         try:
-            problem_list = atcoder_client.download_problem_list(
-                Contest(contest_id=contest_id))
+            problem = atcoder_client.download_problem(problem_id)
             break
         except PageNotFoundError:
             if 0 < retry_max_tries < attempt_count:
@@ -183,10 +183,13 @@ def prepare_contest(atcoder_client: AtCoderClient,
             retry_delay_secs = min(retry_delay_secs * 2, retry_max_delay_secs)
             attempt_count += 1
 
+    if contest_name is None:
+        contest_name = problem.get_contest().get_id()
+
     tasks = [(atcoder_client,
               problem,
-              config) for
-             problem in problem_list]
+              config,
+              contest_name)]
 
     output_splitter()
 
@@ -204,7 +207,7 @@ def prepare_contest(atcoder_client: AtCoderClient,
 
     if config.postprocess_config.exec_cmd_on_contest_dir is not None:
         contest_dir_path = os.path.join(
-            config.code_style_config.workspace_dir, contest_id)
+            config.code_style_config.workspace_dir, contest_name)
         logger.info(_message_on_execution(contest_dir_path,
                                           config.postprocess_config.exec_cmd_on_contest_dir))
         config.postprocess_config.execute_on_contest_dir(
@@ -242,9 +245,8 @@ def main(prog, args):
     parser.add_argument("problem_id",
                         help="Problem ID (e.g. abc101_a)")
 
-    parser.add_argument("contest_name",
-                        help="Contest Name (e.g. 0901am)",
-                        default="default_contest")
+    parser.add_argument("--contest",
+                        help="Contest Name (e.g. 0901am)")
 
     parser.add_argument("--without-login",
                         action="store_true",
@@ -321,8 +323,8 @@ def main(prog, args):
 
     prepare_contest(client,
                     args.problem_id,
-                    args.contest_name,
-                    config)
+                    config,
+                    args.contest)
 
 
 if __name__ == "__main__":
