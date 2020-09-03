@@ -130,21 +130,25 @@ class AtCoderClient(metaclass=Singleton):
         except (InputFormatDetectionError, SampleDetectionError) as e:
             raise e
 
-    def download_problem(self, problem_id: str) -> Problem:
-        contest = Contest(problem_id.rsplit('_', 1)[0])
-        
-        resp = self._request(contest.get_problem_list_url())
-        soup = BeautifulSoup(resp.text, "html.parser")
-        if resp.status_code == 404:
+    def download_problem(self, problem_id_list: List[str]) -> List[Problem]:
+        res = []
+        for problem_id in problem_id_list:
+            contest = Contest(problem_id.rsplit('_', 1)[0])
+            
+            resp = self._request(contest.get_problem_list_url())
+            soup = BeautifulSoup(resp.text, "html.parser")
+            if resp.status_code == 404:
+                continue
+            for tag in soup.find('table').select('tr')[1::]:
+                tag = tag.find("a")
+                alphabet = tag.text
+                if problem_id == tag.get("href").split("/")[-1]:
+                    res.append(Problem(contest, alphabet, problem_id))
+
+        if not res:
             raise PageNotFoundError
 
-        for tag in soup.find('table').select('tr')[1::]:
-            tag = tag.find("a")
-            alphabet = tag.text
-            if problem_id == tag.get("href").split("/")[-1]:
-                return Problem(contest, alphabet, problem_id)
-
-        raise PageNotFoundError
+        return res
 
     def download_all_contests(self) -> List[Contest]:
         contest_ids = []

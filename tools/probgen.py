@@ -7,7 +7,7 @@ import traceback
 from multiprocessing import Pool, cpu_count
 from os.path import expanduser
 import time
-from typing import Tuple
+from typing import List, Tuple
 
 from colorama import Fore
 
@@ -163,7 +163,7 @@ def func(argv: Tuple[AtCoderClient, Problem, Config, str]):
 
 
 def prepare_contest(atcoder_client: AtCoderClient,
-                    problem_id: str,
+                    problem_id_list: List[str],
                     config: Config,
                     contest_name: str,
                     retry_delay_secs: float = 1.5,
@@ -172,7 +172,7 @@ def prepare_contest(atcoder_client: AtCoderClient,
     attempt_count = 1
     while True:
         try:
-            problem = atcoder_client.download_problem(problem_id)
+            problem_list = atcoder_client.download_problem(problem_id_list)
             break
         except PageNotFoundError:
             if 0 < retry_max_tries < attempt_count:
@@ -184,12 +184,13 @@ def prepare_contest(atcoder_client: AtCoderClient,
             attempt_count += 1
 
     if contest_name is None:
-        contest_name = problem.get_contest().get_id()
+        contest_name = problem_list[0].get_contest().get_id()
 
     tasks = [(atcoder_client,
               problem,
               config,
-              contest_name)]
+              contest_name) for
+             problem in problem_list]
 
     output_splitter()
 
@@ -243,6 +244,7 @@ def main(prog, args):
         formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument("problem_id",
+                        nargs="*",
                         help="Problem ID (e.g. abc101_a)")
 
     parser.add_argument("--contest",
