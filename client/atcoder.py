@@ -133,11 +133,14 @@ class AtCoderClient(metaclass=Singleton):
     def download_problem(self, problem_id_list: List[str]) -> List[Problem]:
         res = []
         for problem_id in problem_id_list:
-            contest = Contest(problem_id.rsplit('_', 1)[0])
+            contest = Contest(
+                problem_id.rsplit('_', 1)[0].replace('_', '-'))
             
             resp = self._request(contest.get_problem_list_url())
             soup = BeautifulSoup(resp.text, "html.parser")
             if resp.status_code == 404:
+                logger.warning(
+                "Failed to fetch. problem_id : {}".format(problem_id))
                 continue
             for tag in soup.find('table').select('tr')[1::]:
                 tag = tag.find("a")
