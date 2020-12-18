@@ -31,7 +31,7 @@ def main(prog, args, credential_supplier=None, use_local_session_cache=True) -> 
     parser.add_argument("--timeout", '-t',
                         help="Timeout for each test cases (sec) [Default] 1",
                         type=int,
-                        default=1)
+                        default=None)
 
     parser.add_argument("--code", '-c',
                         help="Path to the source code to submit [Default] Code path written in metadata.json",
