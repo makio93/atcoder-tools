@@ -225,10 +225,10 @@ DEFAULT_IN_EXAMPLE_PATTERN = 'in_*.txt'
 DEFAULT_OUT_EXAMPLE_PATTERN = "out_*.txt"
 
 
-def get_sample_patterns_and_judge_method(metadata_file: str) -> Tuple[str, str, Judge]:
+def get_sample_patterns_and_judge_method(metadata_file: str) -> Tuple[str, str, Judge, int]:
     try:
         metadata = Metadata.load_from(metadata_file)
-        return metadata.sample_in_pattern, metadata.sample_out_pattern, metadata.judge_method
+        return metadata.sample_in_pattern, metadata.sample_out_pattern, metadata.judge_method, metadata.timeout_sec
     except IOError:
         logger.warning("{} is not found. Assume the example file name patterns are {} and {}".format(
             metadata_file,
@@ -263,7 +263,7 @@ def main(prog, args) -> bool:
     parser.add_argument("--timeout", '-t',
                         help="Timeout for each test cases (sec) [Default] 1",
                         type=int,
-                        default=1)
+                        default=None)
 
     parser.add_argument("--knock-out", '-k',
                         help="Stop execution immediately after any example's failure [Default] False",
@@ -294,7 +294,7 @@ def main(prog, args) -> bool:
         glob.glob(os.path.join(args.dir, '*')))
 
     metadata_file = os.path.join(args.dir, "metadata.json")
-    in_ex_pattern, out_ex_pattern, judge_method = get_sample_patterns_and_judge_method(
+    in_ex_pattern, out_ex_pattern, judge_method, timeout_sec = get_sample_patterns_and_judge_method(
         metadata_file)
 
     in_sample_file_list = sorted(
@@ -330,11 +330,14 @@ def main(prog, args) -> bool:
         logger.info("Decimal number judge is enabled. type={}, diff={}".format(
             judge_method.error_type.value, judge_method.diff))
 
+    if args.timeout is not None:
+        timeout_sec = args.timeout
+
     if args.num is None:
-        return run_all_tests(exec_file, in_sample_file_list, out_sample_file_list, args.timeout, args.knock_out,
+        return run_all_tests(exec_file, in_sample_file_list, out_sample_file_list, timeout_sec, args.knock_out,
                              args.skip_almost_ac_feedback, judge_method)
     else:
-        return run_single_test(exec_file, in_sample_file_list, out_sample_file_list, args.timeout, args.num,
+        return run_single_test(exec_file, in_sample_file_list, out_sample_file_list, timeout_sec, args.num,
                                judge_method)
 
 
